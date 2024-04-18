@@ -25,12 +25,12 @@ func initDB() *gorm.DB {
 	return database
 }
 
-func startServer(handler *handler.StudentHandler) {
+func startServer(handler *handler.FollowerHandler) {
 	router := mux.NewRouter().StrictSlash(true)
 
 	// students
-	router.HandleFunc("/students/{id}", handler.Get).Methods("GET")
-	router.HandleFunc("/students", handler.Create).Methods("POST")
+	// router.HandleFunc("/students/{id}", handler.Get).Methods("GET")
+	// router.HandleFunc("/students", handler.Create).Methods("POST")
 
 	// followers
 
@@ -45,9 +45,9 @@ func main() {
 		print("FAILED TO CONNECT TO DB")
 		return
 	}
-	repo := &repo.StudentRepository{DatabaseConnection: database}
-	service := &service.StudentService{StudentRepo: repo}
-	handler := &handler.StudentHandler{StudentService: service}
+	repo := &repo.FollowerRepository{DatabaseConnection: database}
+	service := &service.FollowerService{FollowerRepo: repo}
+	handler := &handler.FollowerHandler{FollowerService: service}
 
 	startServer(handler)
 }
