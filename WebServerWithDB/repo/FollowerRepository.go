@@ -2,6 +2,7 @@ package repo
 
 import (
 	"context"
+	"database-example/model"
 	"log"
 
 	// NoSQL: module containing Neo4J api client
@@ -42,6 +43,35 @@ func (fr *FollowerRepository) CheckConnection() {
 	}
 
 	fr.logger.Printf(`Neo4J server address: %s`, fr.driver.Target().Host)
+}
+
+func (mr *FollowerRepository) CreateUser(user *model.User) error {
+	ctx := context.Background()
+	session := mr.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
+	defer session.Close(ctx)
+
+	// ExecuteWrite for write transactions (Create/Update/Delete)
+	savedPerson, err := session.ExecuteWrite(ctx,
+		func(transaction neo4j.ManagedTransaction) (any, error) {
+			result, err := transaction.Run(ctx,
+				"CREATE (u:User {id: $id, username: $username}) RETURN u.username + ', from node ' + id(u)",
+				map[string]interface{}{"id": user.ID, "username": user.Username})
+			if err != nil {
+				return nil, err
+			}
+
+			if result.Next(ctx) {
+				return result.Record().Values[0], nil
+			}
+
+			return nil, result.Err()
+		})
+	if err != nil {
+		mr.logger.Println("Error inserting Person:", err)
+		return err
+	}
+	mr.logger.Println(savedPerson.(string))
+	return nil
 }
 
 func (mr *FollowerRepository) CloseDriverConnection(ctx context.Context) {

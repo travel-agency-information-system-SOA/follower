@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	handlers "database-example/handler"
+	"database-example/model"
 	repository "database-example/repo"
 	"log"
 	"net/http"
@@ -32,6 +33,17 @@ func main() {
 	}
 	defer store.CloseDriverConnection(timeoutContext)
 	store.CheckConnection()
+
+	user := &model.User{
+		ID:       1,
+		Username: "john_doe",
+	}
+	err = store.CreateUser(user)
+	if err != nil {
+		logger.Fatal("Error creating User:", err)
+		return
+	}
+	logger.Println("Hardcoded user created successfully")
 
 	followerHandler := handlers.NewFollowerHandler(logger, store)
 	router := mux.NewRouter()

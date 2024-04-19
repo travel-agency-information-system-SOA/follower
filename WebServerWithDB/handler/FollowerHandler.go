@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"database-example/model"
 	repository "database-example/repo"
 	"log"
 	"net/http"
@@ -15,6 +16,17 @@ type FollowerHandler struct {
 
 func NewFollowerHandler(l *log.Logger, r *repository.FollowerRepository) *FollowerHandler {
 	return &FollowerHandler{l, r}
+}
+
+func (m *FollowerHandler) CreateUser(rw http.ResponseWriter, h *http.Request) {
+	user := h.Context().Value(KeyProduct{}).(*model.User)
+	err := m.repo.CreateUser(user)
+	if err != nil {
+		m.logger.Print("Database exception: ", err)
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	rw.WriteHeader(http.StatusCreated)
 }
 
 func (m *FollowerHandler) MiddlewareContentTypeSet(next http.Handler) http.Handler {
