@@ -1,53 +1,72 @@
 package main
 
 import (
-	"database-example/handler"
-	"database-example/model"
-	"database-example/repo"
-	"database-example/service"
+	"context"
+	handlers "database-example/handler"
+	repository "database-example/repo"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"time"
 
+	gorillaHandlers "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 )
 
-func initDB() *gorm.DB {
-	dsn := "user=postgres password=super dbname=explorer host=database port=5432 sslmode=disable search_path=tours" // podesavanje baze
-	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	if err != nil {
-		print(err)
-		return nil
-	}
-
-	database.AutoMigrate(&model.User{}, &model.Followers{}) // migracije da bismo napravili tabele
-	return database
-}
-
-func startServer(handler *handler.FollowerHandler) {
-	router := mux.NewRouter().StrictSlash(true)
-
-	// students
-	// router.HandleFunc("/students/{id}", handler.Get).Methods("GET")
-	// router.HandleFunc("/students", handler.Create).Methods("POST")
-
-	// followers
-
-	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./static")))
-	println("Server starting")
-	log.Fatal(http.ListenAndServe(":8090", router))
-}
-
 func main() {
-	database := initDB()
-	if database == nil {
-		print("FAILED TO CONNECT TO DB")
-		return
+	port := os.Getenv("PORT")
+	if len(port) == 0 {
+		port = "8080"
 	}
-	repo := &repo.FollowerRepository{DatabaseConnection: database}
-	service := &service.FollowerService{FollowerRepo: repo}
-	handler := &handler.FollowerHandler{FollowerService: service}
 
-	startServer(handler)
+	timeoutContext, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	logger := log.New(os.Stdout, "[follower-api] ", log.LstdFlags)
+	storeLogger := log.New(os.Stdout, "[follower-store] ", log.LstdFlags)
+
+	store, err := repository.New(storeLogger)
+	if err != nil {
+		logger.Fatal(err)
+	}
+	defer store.CloseDriverConnection(timeoutContext)
+	store.CheckConnection()
+
+	followerHandler := handlers.NewFollowerHandler(logger, store)
+	router := mux.NewRouter()
+
+	router.Use(followerHandler.MiddlewareContentTypeSet)
+
+	// rutiranje ovde
+
+	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
+
+	server := http.Server{
+		Addr:         ":8090",
+		Handler:      cors(router),
+		IdleTimeout:  120 * time.Second,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
+	}
+
+	logger.Println("Server listening on port", port)
+	go func() {
+		err := server.ListenAndServe()
+		if err != nil {
+			logger.Fatal(err)
+		}
+	}()
+
+	sigCh := make(chan os.Signal)
+	signal.Notify(sigCh, os.Interrupt)
+	signal.Notify(sigCh, os.Kill)
+
+	sig := <-sigCh
+	logger.Println("Received terminate, graceful shutdown", sig)
+
+	if server.Shutdown(timeoutContext) != nil {
+		logger.Fatal("Cannot gracefully shutdown...")
+	}
+	logger.Println("Server stopped")
 }
