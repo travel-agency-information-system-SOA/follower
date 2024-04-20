@@ -81,7 +81,11 @@ func (fr *FollowerRepository) CreateFollowers(user *model.User, followingUser *m
 	_, err := session.ExecuteWrite(ctx,
 		func(transaction neo4j.ManagedTransaction) (any, error) {
 			_, err := transaction.Run(ctx,
-				"CREATE (f:Followers {userId: $userId, username: $username, followingUserId: $followingUserId, followingUsername: $followingUsername}) RETURN f",
+				`
+				MATCH (u:User {id: $userId}), (f:User {id: $followingUserId})
+				CREATE (u)-[:FOLLOWS]->(f)
+				RETURN u, f
+				`,
 				map[string]interface{}{
 					"userId":            user.ID,
 					"username":          user.Username,
@@ -95,7 +99,7 @@ func (fr *FollowerRepository) CreateFollowers(user *model.User, followingUser *m
 			return nil, nil
 		})
 	if err != nil {
-		fr.logger.Println("Error creating followers node:", err)
+		fr.logger.Println("Error creating followers relationship:", err)
 		return err
 	}
 
@@ -135,6 +139,38 @@ func (fr *FollowerRepository) GetAllFollowers() ([]*model.Followers, error) {
 	}
 
 	return followers, nil
+}
+
+func (fr *FollowerRepository) GetRecommendations(userID string) ([]*model.User, error) {
+	ctx := context.Background()
+	session := fr.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
+	defer session.Close(ctx)
+
+	// Pronalazak svih objekata Followers čije polje UserID odgovara prosleđenom userID
+	result, err := session.Run(
+		ctx,
+		`MATCH (u:User {id: $userID})-[:FOLLOWS]->(f:User)
+        RETURN f.id as id, f.username as username`,
+		map[string]interface{}{"userID": userID},
+	)
+	if err != nil {
+		fr.logger.Println("Error getting recommendations:", err)
+		return nil, err
+	}
+
+	var recommendations []*model.User
+	for result.Next(ctx) {
+		record := result.Record()
+		id, _ := record.Get("id")
+		username, _ := record.Get("username")
+		user := &model.User{
+			ID:       id.(int),
+			Username: username.(string),
+		}
+		recommendations = append(recommendations, user)
+	}
+
+	return recommendations, nil
 }
 
 func (mr *FollowerRepository) CloseDriverConnection(ctx context.Context) {

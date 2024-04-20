@@ -64,6 +64,27 @@ func (m *FollowerHandler) GetAllFollowers(rw http.ResponseWriter, h *http.Reques
 	rw.Write(followersJSON)
 }
 
+func (m *FollowerHandler) GetRecommendationsHandler(rw http.ResponseWriter, h *http.Request) {
+	userID := h.Context().Value(KeyProduct{}).(string)
+	recommendations, err := m.repo.GetRecommendations(userID)
+	if err != nil {
+		m.logger.Print("Database exception: ", err)
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	recommendationsJSON, err := json.Marshal(recommendations)
+	if err != nil {
+		m.logger.Print("Error marshaling recommendations to JSON: ", err)
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(http.StatusOK)
+	rw.Write(recommendationsJSON)
+}
+
 func (m *FollowerHandler) MiddlewareContentTypeSet(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, h *http.Request) {
 		m.logger.Println("Method [", h.Method, "] - Hit path :", h.URL.Path)
