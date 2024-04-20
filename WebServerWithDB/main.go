@@ -68,6 +68,7 @@ func main() {
 	// rutiranje ovde
 	router.HandleFunc("/users", followerHandler.CreateUser).Methods(http.MethodPost)
 	router.HandleFunc("/followers", followerHandler.CreateFollowers).Methods(http.MethodPost)
+	router.HandleFunc("/followers/all", followerHandler.GetAllFollowers).Methods(http.MethodGet)
 
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 

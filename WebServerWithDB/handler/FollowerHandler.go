@@ -3,6 +3,7 @@ package handler
 import (
 	"database-example/model"
 	repository "database-example/repo"
+	"encoding/json"
 	"log"
 	"net/http"
 )
@@ -41,6 +42,26 @@ func (m *FollowerHandler) CreateFollowers(rw http.ResponseWriter, h *http.Reques
 	}
 
 	rw.WriteHeader(http.StatusCreated)
+}
+
+func (m *FollowerHandler) GetAllFollowers(rw http.ResponseWriter, h *http.Request) {
+	followers, err := m.repo.GetAllFollowers()
+	if err != nil {
+		m.logger.Print("Database exception: ", err)
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	followersJSON, err := json.Marshal(followers)
+	if err != nil {
+		m.logger.Print("Error marshaling followers to JSON: ", err)
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(http.StatusOK)
+	rw.Write(followersJSON)
 }
 
 func (m *FollowerHandler) MiddlewareContentTypeSet(next http.Handler) http.Handler {
