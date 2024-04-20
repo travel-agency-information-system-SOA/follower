@@ -74,6 +74,35 @@ func (mr *FollowerRepository) CreateUser(user *model.User) error {
 	return nil
 }
 
+func (fr *FollowerRepository) CreateFollowers(user *model.User, followingUser *model.User) error {
+	ctx := context.Background()
+	session := fr.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
+	defer session.Close(ctx)
+
+	_, err := session.ExecuteWrite(ctx,
+		func(transaction neo4j.ManagedTransaction) (any, error) {
+			_, err := transaction.Run(ctx,
+				"CREATE (f:Followers {userId: $userId, username: $username, followingUserId: $followingUserId, followingUsername: $followingUsername}) RETURN f",
+				map[string]interface{}{
+					"userId":            user.ID,
+					"username":          user.Username,
+					"followingUserId":   followingUser.ID,
+					"followingUsername": followingUser.Username,
+				})
+			if err != nil {
+				return nil, err
+			}
+
+			return nil, nil
+		})
+	if err != nil {
+		fr.logger.Println("Error creating followers node:", err)
+		return err
+	}
+
+	return nil
+}
+
 func (mr *FollowerRepository) CloseDriverConnection(ctx context.Context) {
 	mr.driver.Close(ctx)
 }

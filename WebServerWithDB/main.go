@@ -36,7 +36,15 @@ func main() {
 
 	user := &model.User{
 		ID:       1,
-		Username: "john_doe",
+		Username: "milica",
+	}
+	user2 := &model.User{
+		ID:       2,
+		Username: "kristina",
+	}
+	user3 := &model.User{
+		ID:       3,
+		Username: "ana",
 	}
 	err = store.CreateUser(user)
 	if err != nil {
@@ -45,12 +53,21 @@ func main() {
 	}
 	logger.Println("Hardcoded user created successfully")
 
+	err = store.CreateFollowers(user2, user3)
+	if err != nil {
+		logger.Fatal("Error creating Follower:", err)
+		return
+	}
+	logger.Println("Hardcoded follower created successfully")
+
 	followerHandler := handlers.NewFollowerHandler(logger, store)
 	router := mux.NewRouter()
 
 	router.Use(followerHandler.MiddlewareContentTypeSet)
 
 	// rutiranje ovde
+	router.HandleFunc("/users", followerHandler.CreateUser).Methods(http.MethodPost)
+	router.HandleFunc("/followers", followerHandler.CreateFollowers).Methods(http.MethodPost)
 
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 
