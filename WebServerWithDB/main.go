@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	handlers "database-example/handler"
-	"database-example/model"
 	repository "database-example/repo"
 	"log"
 	"net/http"
@@ -34,45 +33,6 @@ func main() {
 	defer store.CloseDriverConnection(timeoutContext)
 	store.CheckConnection()
 
-	user := &model.User{
-		ID:       1,
-		Username: "milica",
-	}
-	user2 := &model.User{
-		ID:       2,
-		Username: "kristina",
-	}
-	user3 := &model.User{
-		ID:       3,
-		Username: "ana",
-	}
-	err = store.CreateUser(user3)
-	if err != nil {
-		logger.Fatal("Error creating User:", err)
-		return
-	}
-	logger.Println("Hardcoded user created successfully")
-
-	err = store.CreateFollowers(user, user2)
-	if err != nil {
-		logger.Fatal("Error creating Follower:", err)
-		return
-	}
-	logger.Println("Hardcoded follower created successfully")
-
-	// PROVERA ZA PREPORUKE DA LI RADE ?
-	recommendations, err := store.GetRecommendations("2")
-	if err != nil {
-		logger.Fatal("Error getting recommendations:", err)
-		return
-	}
-
-	// Ispisi rezultat u konzoli
-	logger.Println("Recommendations for userID 2:")
-	for _, user := range recommendations {
-		logger.Printf("User ID: %d, Username: %s\n", user.ID, user.Username)
-	}
-
 	followerHandler := handlers.NewFollowerHandler(logger, store)
 	router := mux.NewRouter()
 
@@ -82,6 +42,8 @@ func main() {
 	router.HandleFunc("/users", followerHandler.CreateUser).Methods(http.MethodPost)
 	router.HandleFunc("/followers", followerHandler.CreateFollowers).Methods(http.MethodPost)
 	router.HandleFunc("/followers/all", followerHandler.GetAllFollowers).Methods(http.MethodGet)
+	router.HandleFunc("/followers/recommendations", followerHandler.GetRecommendations).Methods(http.MethodGet)
+	router.HandleFunc("/followers/followings", followerHandler.GetFollowings).Methods(http.MethodGet)
 
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 

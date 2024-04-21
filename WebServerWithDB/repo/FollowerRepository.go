@@ -6,7 +6,6 @@ import (
 	"log"
 	"strconv"
 
-	// NoSQL: module containing Neo4J api client
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 )
 
@@ -15,7 +14,6 @@ type FollowerRepository struct {
 	logger *log.Logger
 }
 
-// NoSQL: Constructor which reads db configuration from environment and creates a keyspace
 func New(logger *log.Logger) (*FollowerRepository, error) {
 	uri := "bolt://localhost:7687"
 	user := "neo4j"
