@@ -64,7 +64,7 @@ func (m *FollowerHandler) GetAllFollowers(rw http.ResponseWriter, h *http.Reques
 	rw.Write(followersJSON)
 }
 
-func (m *FollowerHandler) GetRecommendationsHandler(rw http.ResponseWriter, h *http.Request) {
+func (m *FollowerHandler) GetRecommendations(rw http.ResponseWriter, h *http.Request) {
 	userID := h.Context().Value(KeyProduct{}).(string)
 	recommendations, err := m.repo.GetRecommendations(userID)
 	if err != nil {
@@ -83,6 +83,27 @@ func (m *FollowerHandler) GetRecommendationsHandler(rw http.ResponseWriter, h *h
 	rw.Header().Set("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusOK)
 	rw.Write(recommendationsJSON)
+}
+
+func (m *FollowerHandler) GetFollowings(rw http.ResponseWriter, h *http.Request) {
+	userID := h.Context().Value(KeyProduct{}).(string)
+	followings, err := m.repo.GetFollowings(userID)
+	if err != nil {
+		m.logger.Print("Database exception: ", err)
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	followingsJSON, err := json.Marshal(followings)
+	if err != nil {
+		m.logger.Print("Error marshaling followings to JSON: ", err)
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(http.StatusOK)
+	rw.Write(followingsJSON)
 }
 
 func (m *FollowerHandler) MiddlewareContentTypeSet(next http.Handler) http.Handler {

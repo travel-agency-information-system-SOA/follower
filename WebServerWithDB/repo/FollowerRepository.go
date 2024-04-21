@@ -4,6 +4,7 @@ import (
 	"context"
 	"database-example/model"
 	"log"
+	"strconv"
 
 	// NoSQL: module containing Neo4J api client
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
@@ -146,13 +147,14 @@ func (fr *FollowerRepository) GetRecommendations(userID string) ([]*model.User, 
 	session := fr.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
 	defer session.Close(ctx)
 
-	// Pronalazak svih objekata Followers čije polje UserID odgovara prosleđenom userID
 	result, err := session.Run(
 		ctx,
-		`MATCH (u:User {id: $userID})-[:FOLLOWS]->(f:User)
-        RETURN f.id as id, f.username as username`,
-		map[string]interface{}{"userID": userID},
-	)
+		`
+        MATCH (u:User)-[:FOLLOWS]->(f:User)<-[:FOLLOWS]-(ff:User)
+        WHERE u.id = $userID
+        RETURN ff.id as id, ff.username as username
+        `,
+		map[string]interface{}{"userID": userID})
 	if err != nil {
 		fr.logger.Println("Error getting recommendations:", err)
 		return nil, err
@@ -163,14 +165,48 @@ func (fr *FollowerRepository) GetRecommendations(userID string) ([]*model.User, 
 		record := result.Record()
 		id, _ := record.Get("id")
 		username, _ := record.Get("username")
+		userIDInt, _ := strconv.Atoi(id.(string))
 		user := &model.User{
-			ID:       id.(int),
+			ID:       userIDInt,
 			Username: username.(string),
 		}
 		recommendations = append(recommendations, user)
 	}
 
 	return recommendations, nil
+}
+
+func (fr *FollowerRepository) GetFollowings(userID string) ([]*model.User, error) {
+	ctx := context.Background()
+	session := fr.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
+	defer session.Close(ctx)
+
+	result, err := session.Run(
+		ctx,
+		`
+        MATCH (u:User)-[:FOLLOWS]->(f:User {id: $userID})
+        RETURN u.id as id, u.username as username
+    `,
+		map[string]interface{}{"userID": userID},
+	)
+	if err != nil {
+		fr.logger.Println("Error getting followings:", err)
+		return nil, err
+	}
+
+	var followings []*model.User
+	for result.Next(ctx) {
+		record := result.Record()
+		id, _ := record.Get("id")
+		username, _ := record.Get("username")
+		user := &model.User{
+			ID:       id.(int),
+			Username: username.(string),
+		}
+		followings = append(followings, user)
+	}
+
+	return followings, nil
 }
 
 func (mr *FollowerRepository) CloseDriverConnection(ctx context.Context) {
