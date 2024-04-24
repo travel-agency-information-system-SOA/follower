@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"database-example/model"
+	"fmt"
 	"log"
 	"strconv"
 
@@ -77,19 +78,21 @@ func (fr *FollowerRepository) CreateFollowers(user *model.User, followingUser *m
 	session := fr.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
 	defer session.Close(ctx)
 
+	// Ispis informacija o korisnicima
+	fmt.Println("User ID:", user.ID, "Username:", user.Username)
+	fmt.Println("Following User ID:", followingUser.ID, "Username:", followingUser.Username)
+
 	_, err := session.ExecuteWrite(ctx,
 		func(transaction neo4j.ManagedTransaction) (any, error) {
 			_, err := transaction.Run(ctx,
 				`
-				MATCH (u:User {id: $userId}), (f:User {id: $followingUserId})
+				MATCH (u:User {id: $userID}), (f:User {id: $followingUserID})
 				CREATE (u)-[:FOLLOWS]->(f)
 				RETURN u, f
 				`,
 				map[string]interface{}{
-					"userId":            user.ID,
-					"username":          user.Username,
-					"followingUserId":   followingUser.ID,
-					"followingUsername": followingUser.Username,
+					"userID":          user.ID,
+					"followingUserID": followingUser.ID,
 				})
 			if err != nil {
 				return nil, err
@@ -97,8 +100,51 @@ func (fr *FollowerRepository) CreateFollowers(user *model.User, followingUser *m
 
 			return nil, nil
 		})
+
 	if err != nil {
 		fr.logger.Println("Error creating followers relationship:", err)
+		return err
+	}
+
+	// Kreiranje Followers objekta
+	followers := &model.Followers{
+		UserId:            strconv.Itoa(user.ID),
+		Username:          user.Username,
+		FollowingUserId:   strconv.Itoa(followingUser.ID),
+		FollowingUsername: followingUser.Username,
+	}
+
+	// Ispis Followers objekta
+	fmt.Println("Followers object:", followers)
+
+	// Upisivanje Followers objekta u Neo4j bazu
+	_, err = session.ExecuteWrite(ctx,
+		func(transaction neo4j.ManagedTransaction) (any, error) {
+			_, err := transaction.Run(ctx,
+				`
+				CREATE (follower:Followers {
+					userId: $userId,
+					username: $username,
+					followingUserId: $followingUserId,
+					followingUsername: $followingUsername
+				})
+				RETURN follower
+				`,
+				map[string]interface{}{
+					"userId":            followers.UserId,
+					"username":          followers.Username,
+					"followingUserId":   followers.FollowingUserId,
+					"followingUsername": followers.FollowingUsername,
+				})
+			if err != nil {
+				return nil, err
+			}
+
+			return nil, nil
+		})
+
+	if err != nil {
+		fr.logger.Println("Error creating Followers node:", err)
 		return err
 	}
 
