@@ -4,6 +4,7 @@ import (
 	"context"
 	"database-example/model"
 	"log"
+	"os"
 	"strconv"
 
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
@@ -15,9 +16,16 @@ type FollowerRepository struct {
 }
 
 func New(logger *log.Logger) (*FollowerRepository, error) {
-	uri := "bolt://localhost:7687"
-	user := "neo4j"
-	pass := "neo4jteam25"
+	//bilo 7687
+	//uri := "bolt://localhost:7687"
+	//uri := "bolt://neo4j:7687"
+	//user := "neo4j"
+	//pass := "nekaSifra"
+	//auth := neo4j.BasicAuth(user, pass, "")
+
+	uri := os.Getenv("NEO4J_DB")
+	user := os.Getenv("NEO4J_USERNAME")
+	pass := os.Getenv("NEO4J_PASS")
 	auth := neo4j.BasicAuth(user, pass, "")
 
 	driver, err := neo4j.NewDriverWithContext(uri, auth)

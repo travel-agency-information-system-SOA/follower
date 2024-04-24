@@ -17,7 +17,7 @@ import (
 func main() {
 	port := os.Getenv("PORT")
 	if len(port) == 0 {
-		port = "8080"
+		port = "5000" //ovde bilo 8080, sada je 5000
 	}
 
 	timeoutContext, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -48,7 +48,7 @@ func main() {
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 
 	server := http.Server{
-		Addr:         ":8090",
+		Addr:         ":" + port, //ovde bilo 8080, sada je 5000, //8090
 		Handler:      cors(router),
 		IdleTimeout:  120 * time.Second,
 		ReadTimeout:  5 * time.Second,

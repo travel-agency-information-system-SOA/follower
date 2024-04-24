@@ -1,10 +1,8 @@
-#get a base image
 FROM golang:alpine
-
-WORKDIR /go/src/app
+WORKDIR /app
+COPY go.mod .
+COPY go.sum .
+RUN go mod download
 COPY . .
-
-RUN go mod tidy
-RUN go build
-
-CMD ["./GolangNeo4j"]
+EXPOSE 5000
+ENTRYPOINT ["go", "run", "main.go"]
