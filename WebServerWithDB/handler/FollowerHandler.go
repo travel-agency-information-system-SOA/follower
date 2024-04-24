@@ -4,6 +4,7 @@ import (
 	"database-example/model"
 	repository "database-example/repo"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -200,7 +201,11 @@ func (m *FollowerHandler) GetRecommendations(rw http.ResponseWriter, h *http.Req
 }
 
 func (m *FollowerHandler) GetFollowings(rw http.ResponseWriter, h *http.Request) {
-	userID := h.Context().Value(KeyProduct{}).(string)
+	// Uzimanje userID iz putanje
+	params := mux.Vars(h)
+	userID := params["userId"]
+
+	// Dobijanje followings iz repozitorijuma
 	followings, err := m.repo.GetFollowings(userID)
 	if err != nil {
 		m.logger.Print("Database exception: ", err)
@@ -208,6 +213,13 @@ func (m *FollowerHandler) GetFollowings(rw http.ResponseWriter, h *http.Request)
 		return
 	}
 
+	//ispis na konzolu
+	fmt.Println("Followings:")
+	for _, following := range followings {
+		fmt.Printf("ISPIS:::: UserID: %d, Username: %s", following.ID, following.Username)
+	}
+
+	// Konvertovanje followings u JSON format
 	followingsJSON, err := json.Marshal(followings)
 	if err != nil {
 		m.logger.Print("Error marshaling followings to JSON: ", err)
@@ -215,8 +227,13 @@ func (m *FollowerHandler) GetFollowings(rw http.ResponseWriter, h *http.Request)
 		return
 	}
 
+	// Postavljanje zaglavlja odgovora
 	rw.Header().Set("Content-Type", "application/json")
+
+	// Postavljanje status koda odgovora
 	rw.WriteHeader(http.StatusOK)
+
+	// Slanje JSON odgovora nazad korisniku
 	rw.Write(followingsJSON)
 }
 

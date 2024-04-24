@@ -228,9 +228,10 @@ func (fr *FollowerRepository) GetFollowings(userID string) ([]*model.User, error
 	result, err := session.Run(
 		ctx,
 		`
-        MATCH (u:User)-[:FOLLOWS]->(f:User {id: $userID})
-        RETURN u.id as id, u.username as username
-    `,
+        MATCH (u:User)-[:FOLLOWS]->(f:User)
+        WHERE u.id = $userID
+        RETURN f.id as id, f.username as username
+        `,
 		map[string]interface{}{"userID": userID},
 	)
 	if err != nil {
