@@ -17,7 +17,7 @@ import (
 func main() {
 	port := os.Getenv("PORT")
 	if len(port) == 0 {
-		port = "8080"
+		port = "8089"
 	}
 
 	timeoutContext, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -40,10 +40,10 @@ func main() {
 
 	// rutiranje ovde
 	router.HandleFunc("/users", followerHandler.CreateUser).Methods(http.MethodPost)
-	router.HandleFunc("/followers", followerHandler.CreateFollowers).Methods(http.MethodPost)
+	router.HandleFunc("/followers/{userId}/{followerId}", followerHandler.CreateFollowers).Methods(http.MethodPost)
 	router.HandleFunc("/followers/all", followerHandler.GetAllFollowers).Methods(http.MethodGet)
 	router.HandleFunc("/followers/recommendations", followerHandler.GetRecommendations).Methods(http.MethodGet)
-	router.HandleFunc("/followers/followings", followerHandler.GetFollowings).Methods(http.MethodGet)
+	router.HandleFunc("/followers/followings/{userId}", followerHandler.GetFollowings).Methods(http.MethodGet) //izmenila
 
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 

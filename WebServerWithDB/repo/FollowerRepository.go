@@ -210,3 +210,33 @@ func (fr *FollowerRepository) GetFollowings(userID string) ([]*model.User, error
 func (mr *FollowerRepository) CloseDriverConnection(ctx context.Context) {
 	mr.driver.Close(ctx)
 }
+
+func (fr FollowerRepository) GetUserById(userID int) (*model.User, error) {
+	ctx := context.Background()
+	session := fr.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
+	defer session.Close(ctx)
+
+	result, err := session.Run(
+		ctx,
+		`
+        MATCH (u:User {id: $userID})
+        RETURN u.username as username
+        `,
+		map[string]interface{}{"userID": userID})
+	if err != nil {
+		fr.logger.Println("Error getting user by ID:", err)
+		return nil, err
+	}
+
+	if result.Next(ctx) {
+		record := result.Record()
+		username, _ := record.Get("username")
+		user := &model.User{
+			ID:       userID,
+			Username: username.(string),
+		}
+		return user, nil
+	}
+
+	return nil, nil
+}
