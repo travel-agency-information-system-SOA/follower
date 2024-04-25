@@ -17,13 +17,10 @@ type FollowerRepository struct {
 }
 
 func New(logger *log.Logger) (*FollowerRepository, error) {
-	//bilo 7687
-	//uri := "bolt://localhost:7687"
-	//uri := "bolt://neo4j:7687"
-	//user := "neo4j"
-	//pass := "nekaSifra"
-	//auth := neo4j.BasicAuth(user, pass, "")
-
+	// uri := "bolt://localhost:7687"
+	// user := "neo4j"
+	// pass := "neo4jteam25"
+	// auth := neo4j.BasicAuth(user, pass, "")
 	uri := os.Getenv("NEO4J_DB")
 	user := os.Getenv("NEO4J_USERNAME")
 	pass := os.Getenv("NEO4J_PASS")
@@ -94,7 +91,7 @@ func (fr *FollowerRepository) CreateFollowers(user *model.User, followingUser *m
 		func(transaction neo4j.ManagedTransaction) (any, error) {
 			_, err := transaction.Run(ctx,
 				`
-				MATCH (u:User {id: $userID}), (f:User {id: $followingUserID})
+				MATCH (u:User {ID: $userID}), (f:User {ID: $followingUserID})
 				CREATE (u)-[:FOLLOWS]->(f)
 				RETURN u, f
 				`,
@@ -206,8 +203,8 @@ func (fr FollowerRepository) GetUserById(userID int) (*model.User, error) {
 	result, err := session.Run(
 		ctx,
 		`
-        MATCH (u:User {id: $userID})
-        RETURN u.username as username
+        MATCH (u:User {ID: $userID})
+        RETURN u.Username as username
         `,
 		map[string]interface{}{"userID": userID})
 	if err != nil {
@@ -244,8 +241,8 @@ func (fr *FollowerRepository) GetFollowings(userID string) ([]*model.User, error
 	result, err := session.Run(
 		ctx,
 		`
-        MATCH (u:User {id: $userID})-[:FOLLOWS]->(f:User)
-        RETURN f.id as id, f.username as username
+        MATCH (u:User {ID: $userID})-[:FOLLOWS]->(f:User)
+        RETURN f.ID as id, f.Username as username
         `,
 		map[string]interface{}{"userID": userIdInt})
 	if err != nil {
@@ -290,9 +287,9 @@ func (fr *FollowerRepository) GetRecommendations(userID string) ([]*model.User, 
 	result, err := session.Run(
 		ctx,
 		`
-		MATCH (u:User {id: $userID})-[:FOLLOWS]->(:User)-[:FOLLOWS]->(f:User)
-		WHERE f.id <> $userID
-		RETURN DISTINCT f.id as id, f.username as username
+		MATCH (u:User {ID: $userID})-[:FOLLOWS]->(:User)-[:FOLLOWS]->(f:User)
+		WHERE f.ID <> $userID
+		RETURN DISTINCT f.ID as id, f.Username as username
         `,
 		map[string]interface{}{"userID": userIdInt})
 	if err != nil {

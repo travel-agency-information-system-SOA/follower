@@ -127,7 +127,7 @@ func (m *FollowerHandler) CreateFollowers(rw http.ResponseWriter, h *http.Reques
 		return
 	}
 	// Ispisivanje informacija o pronađenom korisniku
-	m.logger.Printf("User found - ID: %d, Username: %s\n", user.ID, user.Username)
+	//m.logger.Printf("User found - ID: %d, Username: %s\n", user.ID, user.Username)
 
 	// Pretvaranje followerID u int
 	followerIDInt, err := strconv.Atoi(followerID)
@@ -145,7 +145,8 @@ func (m *FollowerHandler) CreateFollowers(rw http.ResponseWriter, h *http.Reques
 	}
 
 	// Ispisivanje informacija o pronađenom korisniku
-	m.logger.Printf("User found - ID: %d, Username: %s\n", follower1.ID, follower1.Username)
+	//m.logger.Printf("User found - ID: %d, Username: %s\n", follower1.ID, follower1.Username)
+	m.logger.Printf("NESTO ISPIS")
 
 	// Ponovno dodeljivanje vrednosti promenljivoj err
 	err = m.repo.CreateFollowers(user, follower1)
