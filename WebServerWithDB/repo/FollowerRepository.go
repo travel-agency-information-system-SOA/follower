@@ -225,33 +225,104 @@ func (fr *FollowerRepository) GetFollowings(userID string) ([]*model.User, error
 	session := fr.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
 	defer session.Close(ctx)
 
+	// Konvertuj userID u int
+	userIDInt, err := strconv.Atoi(userID)
+	if err != nil {
+		fr.logger.Println("Error converting userID to int:", err)
+		return nil, err
+	}
+
+	// Formatiranje upita sa stvarnom vrednošću userID
+	query := fmt.Sprintf(`
+    MATCH (u:User)-[:FOLLOWS]->(f:User)
+    WHERE f.id = %d
+    RETURN u
+    `, userIDInt)
+
+	// Dodajte log koji će ispisati formatiran upit
+	fmt.Println("Query:", query)
+
+	fmt.Println("UserID:", userID)
 	result, err := session.Run(
 		ctx,
-		`
-        MATCH (u:User)-[:FOLLOWS]->(f:User)
-        WHERE u.id = $userID
-        RETURN f.id as id, f.username as username
-        `,
-		map[string]interface{}{"userID": userID},
+		query,
+		nil, // Ne koristimo map[string]interface{} jer smo direktno uneli vrednost u upit
 	)
 	if err != nil {
 		fr.logger.Println("Error getting followings:", err)
 		return nil, err
 	}
 
-	var followings []*model.User
+	var followers []*model.User
+	// Ispisivanje rezultata pre iteracije
+	fmt.Println("Raw results from the database:")
 	for result.Next(ctx) {
 		record := result.Record()
-		id, _ := record.Get("id")
-		username, _ := record.Get("username")
-		user := &model.User{
-			ID:       id.(int),
-			Username: username.(string),
+		userNode, found := record.Get("u")
+		if !found {
+			continue
 		}
-		followings = append(followings, user)
+		fmt.Print(userNode) //PRAVO PROBLEM OKO PARSIRANJA.................NE ZNAM ISKRENO VISE
+
+		// Parsiranje rezultata
+		props, ok := userNode.(map[string]interface{})
+		if !ok {
+			fmt.Println("Error parsing user node properties")
+			continue
+		}
+
+		userIDValue, ok := props["id"].(int64)
+		if !ok {
+			fmt.Println("Error getting user ID")
+			continue
+		}
+
+		username, ok := props["username"].(string)
+		if !ok {
+			fmt.Println("Error getting username")
+			continue
+		}
+
+		// Kreiranje objekta User
+		userObj := &model.User{
+			ID:       int(userIDValue),
+			Username: username,
+		}
+		followers = append(followers, userObj)
+
+		// Iteriranje kroz rezultate
+		// for result.Next(ctx) {
+		// 	record := result.Record()
+
+		// 	// Izvlačenje vrednosti iz rezultata
+		// 	id, ok := record.Get("u.id")
+		// 	if !ok {
+		// 		fr.logger.Println("Error getting user ID")
+		// 		continue
+		// 	}
+
+		// 	username, ok := record.Get("u.username")
+		// 	if !ok {
+		// 		fr.logger.Println("Error getting username")
+		// 		continue
+		// 	}
+
+		// 	// Konvertovanje ID-ja u int
+		// 	userIDInt, err := strconv.Atoi(id.(string))
+		// 	if err != nil {
+		// 		fr.logger.Println("Error converting user ID to int:", err)
+		// 		continue
+		// 	}
+
+		// 	// Kreiranje objekta User
+		// 	userObj := &model.User{
+		// 		ID:       userIDInt,
+		// 		Username: username.(string),
+		// 	}
+		// 	followers = append(followers, userObj)
 	}
 
-	return followings, nil
+	return followers, nil
 }
 
 func (mr *FollowerRepository) CloseDriverConnection(ctx context.Context) {

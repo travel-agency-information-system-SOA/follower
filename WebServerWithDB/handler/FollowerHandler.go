@@ -206,6 +206,8 @@ func (m *FollowerHandler) GetFollowings(rw http.ResponseWriter, h *http.Request)
 	userID := params["userId"]
 
 	// Dobijanje followings iz repozitorijuma
+	//followings, err := m.repo.GetFollowings(userID)
+
 	followings, err := m.repo.GetFollowings(userID)
 	if err != nil {
 		m.logger.Print("Database exception: ", err)
