@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"database-example/model"
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -85,19 +86,21 @@ func (fr *FollowerRepository) CreateFollowers(user *model.User, followingUser *m
 	session := fr.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
 	defer session.Close(ctx)
 
+	// Ispis informacija o korisnicima
+	fmt.Println("User ID:", user.ID, "Username:", user.Username)
+	fmt.Println("Following User ID:", followingUser.ID, "Username:", followingUser.Username)
+
 	_, err := session.ExecuteWrite(ctx,
 		func(transaction neo4j.ManagedTransaction) (any, error) {
 			_, err := transaction.Run(ctx,
 				`
-				MATCH (u:User {id: $userId}), (f:User {id: $followingUserId})
+				MATCH (u:User {id: $userID}), (f:User {id: $followingUserID})
 				CREATE (u)-[:FOLLOWS]->(f)
 				RETURN u, f
 				`,
 				map[string]interface{}{
-					"userId":            user.ID,
-					"username":          user.Username,
-					"followingUserId":   followingUser.ID,
-					"followingUsername": followingUser.Username,
+					"userID":          user.ID,
+					"followingUserID": followingUser.ID,
 				})
 			if err != nil {
 				return nil, err
@@ -105,8 +108,51 @@ func (fr *FollowerRepository) CreateFollowers(user *model.User, followingUser *m
 
 			return nil, nil
 		})
+
 	if err != nil {
 		fr.logger.Println("Error creating followers relationship:", err)
+		return err
+	}
+
+	// Kreiranje Followers objekta
+	followers := &model.Followers{
+		UserId:            strconv.Itoa(user.ID),
+		Username:          user.Username,
+		FollowingUserId:   strconv.Itoa(followingUser.ID),
+		FollowingUsername: followingUser.Username,
+	}
+
+	// Ispis Followers objekta
+	fmt.Println("Followers object:", followers)
+
+	// Upisivanje Followers objekta u Neo4j bazu
+	_, err = session.ExecuteWrite(ctx,
+		func(transaction neo4j.ManagedTransaction) (any, error) {
+			_, err := transaction.Run(ctx,
+				`
+				CREATE (follower:Followers {
+					userId: $userId,
+					username: $username,
+					followingUserId: $followingUserId,
+					followingUsername: $followingUsername
+				})
+				RETURN follower
+				`,
+				map[string]interface{}{
+					"userId":            followers.UserId,
+					"username":          followers.Username,
+					"followingUserId":   followers.FollowingUserId,
+					"followingUsername": followers.FollowingUsername,
+				})
+			if err != nil {
+				return nil, err
+			}
+
+			return nil, nil
+		})
+
+	if err != nil {
+		fr.logger.Println("Error creating Followers node:", err)
 		return err
 	}
 
@@ -148,7 +194,11 @@ func (fr *FollowerRepository) GetAllFollowers() ([]*model.Followers, error) {
 	return followers, nil
 }
 
-func (fr *FollowerRepository) GetRecommendations(userID string) ([]*model.User, error) {
+func (mr *FollowerRepository) CloseDriverConnection(ctx context.Context) {
+	mr.driver.Close(ctx)
+}
+
+func (fr FollowerRepository) GetUserById(userID int) (*model.User, error) {
 	ctx := context.Background()
 	session := fr.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
 	defer session.Close(ctx)
@@ -156,45 +206,48 @@ func (fr *FollowerRepository) GetRecommendations(userID string) ([]*model.User, 
 	result, err := session.Run(
 		ctx,
 		`
-        MATCH (u:User)-[:FOLLOWS]->(f:User)<-[:FOLLOWS]-(ff:User)
-        WHERE u.id = $userID
-        RETURN ff.id as id, ff.username as username
+        MATCH (u:User {id: $userID})
+        RETURN u.username as username
         `,
 		map[string]interface{}{"userID": userID})
 	if err != nil {
-		fr.logger.Println("Error getting recommendations:", err)
+		fr.logger.Println("Error getting user by ID:", err)
 		return nil, err
 	}
 
-	var recommendations []*model.User
-	for result.Next(ctx) {
+	if result.Next(ctx) {
 		record := result.Record()
-		id, _ := record.Get("id")
 		username, _ := record.Get("username")
-		userIDInt, _ := strconv.Atoi(id.(string))
 		user := &model.User{
-			ID:       userIDInt,
+			ID:       userID,
 			Username: username.(string),
 		}
-		recommendations = append(recommendations, user)
+		return user, nil
 	}
 
-	return recommendations, nil
+	return nil, nil
 }
 
 func (fr *FollowerRepository) GetFollowings(userID string) ([]*model.User, error) {
 	ctx := context.Background()
 	session := fr.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
 	defer session.Close(ctx)
+	fr.logger.Println("usao u repo za get followings")
+
+	// Konvertujemo userID u int64
+	userIdInt, err := strconv.ParseInt(userID, 10, 64)
+	if err != nil {
+		fr.logger.Println("Error converting userID to int64:", err)
+		return nil, err
+	}
 
 	result, err := session.Run(
 		ctx,
 		`
-        MATCH (u:User)-[:FOLLOWS]->(f:User {id: $userID})
-        RETURN u.id as id, u.username as username
-    `,
-		map[string]interface{}{"userID": userID},
-	)
+        MATCH (u:User {id: $userID})-[:FOLLOWS]->(f:User)
+        RETURN f.id as id, f.username as username
+        `,
+		map[string]interface{}{"userID": userIdInt})
 	if err != nil {
 		fr.logger.Println("Error getting followings:", err)
 		return nil, err
@@ -205,16 +258,65 @@ func (fr *FollowerRepository) GetFollowings(userID string) ([]*model.User, error
 		record := result.Record()
 		id, _ := record.Get("id")
 		username, _ := record.Get("username")
+		// Konvertujemo id u int
+		idInt := int(id.(int64))
 		user := &model.User{
-			ID:       id.(int),
+			ID:       idInt,
 			Username: username.(string),
 		}
 		followings = append(followings, user)
+		fr.logger.Println("Found user - ID:", user.ID, "Username:", user.Username)
 	}
 
+	if len(followings) == 0 {
+		fmt.Println("No followings found for user with ID:", userID)
+	}
 	return followings, nil
 }
 
-func (mr *FollowerRepository) CloseDriverConnection(ctx context.Context) {
-	mr.driver.Close(ctx)
+func (fr *FollowerRepository) GetRecommendations(userID string) ([]*model.User, error) {
+	ctx := context.Background()
+	session := fr.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
+	defer session.Close(ctx)
+	fr.logger.Println("usao u repo za get recommmendations")
+
+	// Konvertujemo userID u int64
+	userIdInt, err := strconv.ParseInt(userID, 10, 64)
+	if err != nil {
+		fr.logger.Println("Error converting userID to int64:", err)
+		return nil, err
+	}
+
+	result, err := session.Run(
+		ctx,
+		`
+		MATCH (u:User {id: $userID})-[:FOLLOWS]->(:User)-[:FOLLOWS]->(f:User)
+		WHERE f.id <> $userID
+		RETURN DISTINCT f.id as id, f.username as username
+        `,
+		map[string]interface{}{"userID": userIdInt})
+	if err != nil {
+		fr.logger.Println("Error getting followings:", err)
+		return nil, err
+	}
+
+	var followings []*model.User
+	for result.Next(ctx) {
+		record := result.Record()
+		id, _ := record.Get("id")
+		username, _ := record.Get("username")
+		// Konvertujemo id u int
+		idInt := int(id.(int64))
+		user := &model.User{
+			ID:       idInt,
+			Username: username.(string),
+		}
+		followings = append(followings, user)
+		fr.logger.Println("Found user - ID:", user.ID, "Username:", user.Username)
+	}
+
+	if len(followings) == 0 {
+		fmt.Println("No recommendations found for user with ID:", userID)
+	}
+	return followings, nil
 }
