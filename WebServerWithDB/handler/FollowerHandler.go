@@ -4,7 +4,6 @@ import (
 	"database-example/model"
 	repository "database-example/repo"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -179,64 +178,6 @@ func (m *FollowerHandler) GetAllFollowers(rw http.ResponseWriter, h *http.Reques
 	rw.Write(followersJSON)
 }
 
-func (m *FollowerHandler) GetRecommendations(rw http.ResponseWriter, h *http.Request) {
-	userID := h.Context().Value(KeyProduct{}).(string)
-	recommendations, err := m.repo.GetRecommendations(userID)
-	if err != nil {
-		m.logger.Print("Database exception: ", err)
-		rw.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	recommendationsJSON, err := json.Marshal(recommendations)
-	if err != nil {
-		m.logger.Print("Error marshaling recommendations to JSON: ", err)
-		rw.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	rw.Header().Set("Content-Type", "application/json")
-	rw.WriteHeader(http.StatusOK)
-	rw.Write(recommendationsJSON)
-}
-
-func (m *FollowerHandler) GetFollowings(rw http.ResponseWriter, h *http.Request) {
-	// Uzimanje userID iz putanje
-	params := mux.Vars(h)
-	userID := params["userId"]
-
-	// Dobijanje followings iz repozitorijuma
-	followings, err := m.repo.GetFollowings(userID)
-	if err != nil {
-		m.logger.Print("Database exception: ", err)
-		rw.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	//ispis na konzolu
-	fmt.Println("Followings:")
-	for _, following := range followings {
-		fmt.Printf("ISPIS:::: UserID: %d, Username: %s", following.ID, following.Username)
-	}
-
-	// Konvertovanje followings u JSON format
-	followingsJSON, err := json.Marshal(followings)
-	if err != nil {
-		m.logger.Print("Error marshaling followings to JSON: ", err)
-		rw.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	// Postavljanje zaglavlja odgovora
-	rw.Header().Set("Content-Type", "application/json")
-
-	// Postavljanje status koda odgovora
-	rw.WriteHeader(http.StatusOK)
-
-	// Slanje JSON odgovora nazad korisniku
-	rw.Write(followingsJSON)
-}
-
 func (m *FollowerHandler) MiddlewareContentTypeSet(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, h *http.Request) {
 		m.logger.Println("Method [", h.Method, "] - Hit path :", h.URL.Path)
@@ -245,4 +186,58 @@ func (m *FollowerHandler) MiddlewareContentTypeSet(next http.Handler) http.Handl
 
 		next.ServeHTTP(rw, h)
 	})
+}
+
+func (m *FollowerHandler) GetFollowings(rw http.ResponseWriter, h *http.Request) {
+	m.logger.Println("Usao u handler za get followings")
+	// Dobavljanje ID-ja korisnika iz URL putanje
+	params := mux.Vars(h)
+	userIDStr := params["userId"]
+
+	// Poziv funkcije za dobavljanje korisnika koje prati dati korisnik
+	followings, err := m.repo.GetFollowings(userIDStr)
+	if err != nil {
+		m.logger.Print("Database exception: ", err)
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// Konverzija u JSON i slanje odgovora
+	followingsJSON, err := json.Marshal(followings)
+	if err != nil {
+		m.logger.Print("Error marshaling followings to JSON: ", err)
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(http.StatusOK)
+	rw.Write(followingsJSON)
+}
+
+func (m *FollowerHandler) GetRecommendations(rw http.ResponseWriter, h *http.Request) {
+	m.logger.Println("Usao u handler za get followings")
+	// Dobavljanje ID-ja korisnika iz URL putanje
+	params := mux.Vars(h)
+	userIDStr := params["userId"]
+
+	// Poziv funkcije za dobavljanje korisnika koje prati dati korisnik
+	followings, err := m.repo.GetRecommendations(userIDStr)
+	if err != nil {
+		m.logger.Print("Database exception: ", err)
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// Konverzija u JSON i slanje odgovora
+	followingsJSON, err := json.Marshal(followings)
+	if err != nil {
+		m.logger.Print("Error marshaling followings to JSON: ", err)
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(http.StatusOK)
+	rw.Write(followingsJSON)
 }

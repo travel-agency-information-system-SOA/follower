@@ -42,7 +42,7 @@ func main() {
 	router.HandleFunc("/users", followerHandler.CreateUser).Methods(http.MethodPost)
 	router.HandleFunc("/followers/{userId}/{followerId}", followerHandler.CreateFollowers).Methods(http.MethodPost)
 	router.HandleFunc("/followers/all", followerHandler.GetAllFollowers).Methods(http.MethodGet)
-	router.HandleFunc("/followers/recommendations", followerHandler.GetRecommendations).Methods(http.MethodGet)
+	router.HandleFunc("/followers/recommendations/{userId}", followerHandler.GetRecommendations).Methods(http.MethodGet)
 	router.HandleFunc("/followers/followings/{userId}", followerHandler.GetFollowings).Methods(http.MethodGet) //izmenila
 
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
