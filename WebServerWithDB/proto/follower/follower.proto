@@ -11,18 +11,18 @@ service Follower {
     rpc FindUserFollowings(id) returns (ListNeoUserDto) {}
 }
 
-
-message UserFollowingDto {
-     int32 UserId=1;
-     int32 FollowerId=2;
-}
-
 message NeoFollowerDto {
     string UserId=1;
     string Username=2;
     string FollowingUserId=3;
     string FollowingUsername=4;
 }
+
+message UserFollowingDto {
+    int32 UserId=1;
+    int32 FollowerId=2;
+}
+
 
 message NeoUserDto {
     int32 Id=1;
@@ -59,7 +59,7 @@ message BlogPostRatingDto {
 }
 
 message id {
-    string Id=1;
+    int32 Id=1;
 }
 
 message ListBlogPostDto {

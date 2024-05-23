@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/reflection"
 )
 
@@ -95,31 +94,75 @@ type Server struct {
 	FollowerRepo *repository.FollowerRepository
 }
 
-func (s *Server) CreateNewFollowing(ctx context.Context, req *follower.UserFollowingDto) (*follower.NeoFollowerDto, error) {
-	userIDInt := int(req.UserId)
-	user, err := s.FollowerRepo.GetUserById(userIDInt)
+func (s Server) CreateNewFollowing(ctx context.Context, request *follower.UserFollowingDto) (*follower.NeoFollowerDto, error) {
+	userID := request.UserId
+	followerID := request.FollowerId
+	userIDInt := int(userID)
+	user, err := m.repo.GetUserById(userIDInt)
 	if err != nil {
-		println("Failed to get user:", err)
-		return nil, grpc.Errorf(codes.Internal, "Failed to get user: %v", err)
+		log.Println("Error getting user:", err)
+		return nil, err
 	}
 
-	followerIDInt := int(req.FollowerId)
-	follower, err := s.FollowerRepo.GetUserById(followerIDInt)
+	followerIDint := int(followerID)
+	follower, err := s.FollowerRepo.GetUserById(followerIDint)
 	if err != nil {
-		println("Failed to get follower:", err)
-		return nil, grpc.Errorf(codes.Internal, "Failed to get follower: %v", err)
+		log.Println("Error getting follower:", err)
+		return nil, err
 	}
 
 	err = s.FollowerRepo.CreateFollowers(user, follower)
 	if err != nil {
-		println("Database exception:", err)
-		return nil, grpc.Errorf(codes.Internal, "Database exception: %v", err)
+		log.Println("Error creating new following:", err)
+		return nil, err
 	}
 
 	return &follower.NeoFollowerDto{
-		UserId:            strconv.Itoa(userIDInt),
+		UserId:            strconv.Itoa(user.ID),
 		Username:          user.Username,
-		FollowingUserId:   strconv.Itoa(followerIDInt),
+		FollowingUserId:   strconv.Itoa(follower.ID),
 		FollowingUsername: follower.Username,
+	}, nil
+}
+
+func (s Server) GetUserRecommendations(ctx context.Context, request *follower.Id) (*follower.ListNeoUserDto, error) {
+
+	recommendations, err := s.FollowerRepo.GetRecommendations(request.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	responseList := make([]*follower.NeoUserDto, len(recommendations))
+	for i, recommendation := range recommendations {
+		responseList[i] = &follower.NeoUserDto{
+			Id:       int32(recommendation.ID),
+			Username: recommendation.Username,
+			// Ostali podaci, ako ih ima
+		}
+	}
+
+	return &follower.ListNeoUserDto{
+		ResponseList: responseList,
+	}, nil
+}
+
+func (s Server) FindUserFollowings(ctx context.Context, request *follower.Id) (*follower.ListNeoUserDto, error) {
+
+	followings, err := s.FollowerRepo.GetFollowings(request.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	responseList := make([]*follower.NeoUserDto, len(followings))
+	for i, following := range followings {
+		responseList[i] = &follower.NeoUserDto{
+			Id:       int32(following.ID),
+			Username: following.Username,
+			// Ostali podaci, ako ih ima
+		}
+	}
+
+	return &follower.ListNeoUserDto{
+		ResponseList: responseList,
 	}, nil
 }

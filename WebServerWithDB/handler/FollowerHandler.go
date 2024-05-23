@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"context"
 	"database-example/model"
+	"database-example/proto/follower"
 	repository "database-example/repo"
 	"encoding/json"
 	"log"
@@ -32,66 +34,6 @@ func (m *FollowerHandler) CreateUser(rw http.ResponseWriter, h *http.Request) {
 	}
 	rw.WriteHeader(http.StatusCreated)
 }
-
-// func (m *FollowerHandler) CreateFollowers(rw http.ResponseWriter, h *http.Request) {
-// 	// Dekodiranje JSON tela zahteva
-// 	var follower model.Followers
-// 	body, err := ioutil.ReadAll(h.Body)
-// 	if err != nil {
-// 		m.logger.Println("Failed to read request body:", err)
-// 		rw.WriteHeader(http.StatusBadRequest)
-// 		return
-// 	}
-// 	defer h.Body.Close()
-
-// 	if err := json.Unmarshal(body, &follower); err != nil {
-// 		m.logger.Println("Failed to decode request body:", err)
-// 		rw.WriteHeader(http.StatusBadRequest)
-// 		return
-// 	}
-
-// 	// Konvertovanje stringa u int za UserID
-// 	userID, err := strconv.Atoi(follower.UserId)
-// 	if err != nil {
-// 		m.logger.Println("Failed to convert UserID to int:", err)
-// 		rw.WriteHeader(http.StatusBadRequest)
-// 		return
-// 	}
-
-// 	// Konvertovanje stringa u int za FollowingUserID
-// 	followingUserID, err := strconv.Atoi(follower.FollowingUserId)
-// 	if err != nil {
-// 		m.logger.Println("Failed to convert FollowingUserID to int:", err)
-// 		rw.WriteHeader(http.StatusBadRequest)
-// 		return
-// 	}
-
-// 	// Dobavljanje korisnika iz baze podataka
-// 	user, err := m.repo.GetUserById(userID)
-// 	if err != nil {
-// 		m.logger.Println("Failed to get user:", err)
-// 		rw.WriteHeader(http.StatusInternalServerError)
-// 		return
-// 	}
-
-// 	// Dobavljanje korisnika koji prati
-// 	followingUser, err := m.repo.GetUserById(followingUserID)
-// 	if err != nil {
-// 		m.logger.Println("Failed to get following user:", err)
-// 		rw.WriteHeader(http.StatusInternalServerError)
-// 		return
-// 	}
-
-// 	// Kreiranje novog followera
-// 	err = m.repo.CreateFollowers(&user, &followingUser)
-// 	if err != nil {
-// 		m.logger.Println("Database exception:", err)
-// 		rw.WriteHeader(http.StatusInternalServerError)
-// 		return
-// 	}
-
-// 	rw.WriteHeader(http.StatusCreated)
-// }
 
 func (m *FollowerHandler) CreateFollowers(rw http.ResponseWriter, h *http.Request) {
 	params := mux.Vars(h)
@@ -230,4 +172,26 @@ func (m *FollowerHandler) GetRecommendations(rw http.ResponseWriter, h *http.Req
 	rw.Header().Set("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusOK)
 	rw.Write(followingsJSON)
+}
+
+func (s Server) GetUserRecommendations(ctx context.Context, request *follower.Id) (*follower.ListNeoUserDto, error) {
+	userID := int(request.Id)
+
+	recommendations, err := s.FollowerRepo.GetRecommendations(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	responseList := make([]*follower.NeoUserDto, len(recommendations))
+	for i, recommendation := range recommendations {
+		responseList[i] = &follower.NeoUserDto{
+			Id:       int32(recommendation.Id),
+			Username: recommendation.Username,
+			// Ostali podaci, ako ih ima
+		}
+	}
+
+	return &follower.ListNeoUserDto{
+		ResponseList: responseList,
+	}, nil
 }
