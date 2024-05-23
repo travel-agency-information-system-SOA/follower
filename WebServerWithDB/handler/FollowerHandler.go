@@ -94,7 +94,6 @@ func (m *FollowerHandler) CreateUser(rw http.ResponseWriter, h *http.Request) {
 // }
 
 func (m *FollowerHandler) CreateFollowers(rw http.ResponseWriter, h *http.Request) {
-	// Dobavljanje ID-jeva korisnika i korisnika koji ga prati iz putanje
 	params := mux.Vars(h)
 
 	userID := params["userId"]
@@ -111,7 +110,6 @@ func (m *FollowerHandler) CreateFollowers(rw http.ResponseWriter, h *http.Reques
 		return
 	}
 
-	// Pretvaranje userID u int
 	userIDInt, err := strconv.Atoi(userID)
 	if err != nil {
 		m.logger.Println("Invalid user ID format:", err)
@@ -119,17 +117,13 @@ func (m *FollowerHandler) CreateFollowers(rw http.ResponseWriter, h *http.Reques
 		return
 	}
 
-	// Dobavljanje korisnika i korisnika koji ga prati preko servisa
 	user, err := m.repo.GetUserById(userIDInt)
 	if err != nil {
 		m.logger.Println("Failed to get user:", err)
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	// Ispisivanje informacija o pronađenom korisniku
-	//m.logger.Printf("User found - ID: %d, Username: %s\n", user.ID, user.Username)
 
-	// Pretvaranje followerID u int
 	followerIDInt, err := strconv.Atoi(followerID)
 	if err != nil {
 		m.logger.Println("Invalid follower ID format:", err)
@@ -144,11 +138,6 @@ func (m *FollowerHandler) CreateFollowers(rw http.ResponseWriter, h *http.Reques
 		return
 	}
 
-	// Ispisivanje informacija o pronađenom korisniku
-	//m.logger.Printf("User found - ID: %d, Username: %s\n", follower1.ID, follower1.Username)
-	m.logger.Printf("NESTO ISPIS")
-
-	// Ponovno dodeljivanje vrednosti promenljivoj err
 	err = m.repo.CreateFollowers(user, follower1)
 	if err != nil {
 		m.logger.Print("Database exception: ", err)
