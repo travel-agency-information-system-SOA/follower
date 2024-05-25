@@ -2,12 +2,9 @@ syntax = "proto3";
 
 option go_package = "proto/follower";
 
-import "google/protobuf/timestamp.proto";
-
 service Follower {
     rpc CreateNewFollowing(UserFollowingDto) returns (NeoFollowerDto) {}
     rpc GetUserRecommendations(id) returns (ListNeoUserDto) {}
-    rpc GetFollowingsWithBlogs(id) returns (ListBlogPostDto) {}
     rpc FindUserFollowings(id) returns (ListNeoUserDto) {}
 }
 
@@ -23,47 +20,13 @@ message UserFollowingDto {
     int32 FollowerId=2;
 }
 
-
 message NeoUserDto {
     int32 Id=1;
     string Username=2;
 }
 
-
-message BlogPostDto {
-    int32 Id=1;
-    int32 AuthorId=2;
-    int32 TourId=3;
-    string AuthorUsername=4;
-    string Title=5;
-    string Description=6;
-    google.protobuf.Timestamp CreationDate=7; 
-    repeated string ImageURLs=8;
-    repeated BlogPostCommentDto Comments=9;
-    repeated BlogPostRatingDto Ratings=10;
-    string Status=11;
-}
-
-message BlogPostCommentDto {
-    string Text=1;
-    int32 UserId=2;
-    string Username=3;
-    google.protobuf.Timestamp CreationTime=4;
-    google.protobuf.Timestamp LastUpdatedTime=5;
-}
-
-message BlogPostRatingDto {
-    bool IsPositive=1;
-    google.protobuf.Timestamp CreationTime=2;
-    int32 UserId=3;
-}
-
 message id {
     int32 Id=1;
-}
-
-message ListBlogPostDto {
-    repeated BlogPostDto ResponseList=1 ;
 }
 
 message ListNeoUserDto {

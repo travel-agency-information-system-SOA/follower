@@ -1,9 +1,7 @@
 package handler
 
 import (
-	"context"
 	"database-example/model"
-	"database-example/proto/follower"
 	repository "database-example/repo"
 	"encoding/json"
 	"log"
@@ -174,24 +172,4 @@ func (m *FollowerHandler) GetRecommendations(rw http.ResponseWriter, h *http.Req
 	rw.Write(followingsJSON)
 }
 
-func (s Server) GetUserRecommendations(ctx context.Context, request *follower.Id) (*follower.ListNeoUserDto, error) {
-	userID := int(request.Id)
 
-	recommendations, err := s.FollowerRepo.GetRecommendations(userID)
-	if err != nil {
-		return nil, err
-	}
-
-	responseList := make([]*follower.NeoUserDto, len(recommendations))
-	for i, recommendation := range recommendations {
-		responseList[i] = &follower.NeoUserDto{
-			Id:       int32(recommendation.Id),
-			Username: recommendation.Username,
-			// Ostali podaci, ako ih ima
-		}
-	}
-
-	return &follower.ListNeoUserDto{
-		ResponseList: responseList,
-	}, nil
-}

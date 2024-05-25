@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"database-example/proto/follower"
-	repository "database-example/repo"
+	"database-example/repo"
 	"log"
 	"net"
 	"os"
@@ -26,7 +26,7 @@ func main() {
 	logger := log.New(os.Stdout, "[follower-api] ", log.LstdFlags)
 	storeLogger := log.New(os.Stdout, "[follower-store] ", log.LstdFlags)
 
-	store, err := repository.New(storeLogger)
+	store, err := repo.New(storeLogger)
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -91,27 +91,27 @@ func main() {
 
 type Server struct {
 	follower.UnimplementedFollowerServer
-	FollowerRepo *repository.FollowerRepository
+	FollowerRepo *repo.FollowerRepository
 }
 
 func (s Server) CreateNewFollowing(ctx context.Context, request *follower.UserFollowingDto) (*follower.NeoFollowerDto, error) {
 	userID := request.UserId
 	followerID := request.FollowerId
 	userIDInt := int(userID)
-	user, err := m.repo.GetUserById(userIDInt)
+	user, err := s.FollowerRepo.GetUserById(userIDInt)
 	if err != nil {
 		log.Println("Error getting user:", err)
 		return nil, err
 	}
 
 	followerIDint := int(followerID)
-	follower, err := s.FollowerRepo.GetUserById(followerIDint)
+	follower1, err := s.FollowerRepo.GetUserById(followerIDint)
 	if err != nil {
 		log.Println("Error getting follower:", err)
 		return nil, err
 	}
 
-	err = s.FollowerRepo.CreateFollowers(user, follower)
+	err = s.FollowerRepo.CreateFollowers(user, follower1)
 	if err != nil {
 		log.Println("Error creating new following:", err)
 		return nil, err
@@ -120,14 +120,14 @@ func (s Server) CreateNewFollowing(ctx context.Context, request *follower.UserFo
 	return &follower.NeoFollowerDto{
 		UserId:            strconv.Itoa(user.ID),
 		Username:          user.Username,
-		FollowingUserId:   strconv.Itoa(follower.ID),
-		FollowingUsername: follower.Username,
+		FollowingUserId:   strconv.Itoa(follower1.ID),
+		FollowingUsername: follower1.Username,
 	}, nil
 }
 
 func (s Server) GetUserRecommendations(ctx context.Context, request *follower.Id) (*follower.ListNeoUserDto, error) {
-
-	recommendations, err := s.FollowerRepo.GetRecommendations(request.Id)
+	userId := strconv.Itoa(int(request.Id))
+	recommendations, err := s.FollowerRepo.GetRecommendations(userId)
 	if err != nil {
 		return nil, err
 	}
@@ -147,9 +147,11 @@ func (s Server) GetUserRecommendations(ctx context.Context, request *follower.Id
 }
 
 func (s Server) FindUserFollowings(ctx context.Context, request *follower.Id) (*follower.ListNeoUserDto, error) {
+	userID := strconv.Itoa(int(request.Id))
 
-	followings, err := s.FollowerRepo.GetFollowings(request.Id)
+	followings, err := s.FollowerRepo.GetFollowings(userID)
 	if err != nil {
+		log.Println("Database exception: ", err)
 		return nil, err
 	}
 
@@ -158,7 +160,6 @@ func (s Server) FindUserFollowings(ctx context.Context, request *follower.Id) (*
 		responseList[i] = &follower.NeoUserDto{
 			Id:       int32(following.ID),
 			Username: following.Username,
-			// Ostali podaci, ako ih ima
 		}
 	}
 

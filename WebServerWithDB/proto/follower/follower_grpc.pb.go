@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.3.0
 // - protoc             v5.27.0--rc3
-// source: follower/follower.proto
+// source: proto/follower/follower.proto
 
 package follower
 
@@ -21,7 +21,6 @@ const _ = grpc.SupportPackageIsVersion7
 const (
 	Follower_CreateNewFollowing_FullMethodName     = "/Follower/CreateNewFollowing"
 	Follower_GetUserRecommendations_FullMethodName = "/Follower/GetUserRecommendations"
-	Follower_GetFollowingsWithBlogs_FullMethodName = "/Follower/GetFollowingsWithBlogs"
 	Follower_FindUserFollowings_FullMethodName     = "/Follower/FindUserFollowings"
 )
 
@@ -31,7 +30,6 @@ const (
 type FollowerClient interface {
 	CreateNewFollowing(ctx context.Context, in *UserFollowingDto, opts ...grpc.CallOption) (*NeoFollowerDto, error)
 	GetUserRecommendations(ctx context.Context, in *Id, opts ...grpc.CallOption) (*ListNeoUserDto, error)
-	GetFollowingsWithBlogs(ctx context.Context, in *Id, opts ...grpc.CallOption) (*ListBlogPostDto, error)
 	FindUserFollowings(ctx context.Context, in *Id, opts ...grpc.CallOption) (*ListNeoUserDto, error)
 }
 
@@ -61,15 +59,6 @@ func (c *followerClient) GetUserRecommendations(ctx context.Context, in *Id, opt
 	return out, nil
 }
 
-func (c *followerClient) GetFollowingsWithBlogs(ctx context.Context, in *Id, opts ...grpc.CallOption) (*ListBlogPostDto, error) {
-	out := new(ListBlogPostDto)
-	err := c.cc.Invoke(ctx, Follower_GetFollowingsWithBlogs_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *followerClient) FindUserFollowings(ctx context.Context, in *Id, opts ...grpc.CallOption) (*ListNeoUserDto, error) {
 	out := new(ListNeoUserDto)
 	err := c.cc.Invoke(ctx, Follower_FindUserFollowings_FullMethodName, in, out, opts...)
@@ -85,7 +74,6 @@ func (c *followerClient) FindUserFollowings(ctx context.Context, in *Id, opts ..
 type FollowerServer interface {
 	CreateNewFollowing(context.Context, *UserFollowingDto) (*NeoFollowerDto, error)
 	GetUserRecommendations(context.Context, *Id) (*ListNeoUserDto, error)
-	GetFollowingsWithBlogs(context.Context, *Id) (*ListBlogPostDto, error)
 	FindUserFollowings(context.Context, *Id) (*ListNeoUserDto, error)
 	mustEmbedUnimplementedFollowerServer()
 }
@@ -99,9 +87,6 @@ func (UnimplementedFollowerServer) CreateNewFollowing(context.Context, *UserFoll
 }
 func (UnimplementedFollowerServer) GetUserRecommendations(context.Context, *Id) (*ListNeoUserDto, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUserRecommendations not implemented")
-}
-func (UnimplementedFollowerServer) GetFollowingsWithBlogs(context.Context, *Id) (*ListBlogPostDto, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetFollowingsWithBlogs not implemented")
 }
 func (UnimplementedFollowerServer) FindUserFollowings(context.Context, *Id) (*ListNeoUserDto, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FindUserFollowings not implemented")
@@ -155,24 +140,6 @@ func _Follower_GetUserRecommendations_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Follower_GetFollowingsWithBlogs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Id)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(FollowerServer).GetFollowingsWithBlogs(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: Follower_GetFollowingsWithBlogs_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(FollowerServer).GetFollowingsWithBlogs(ctx, req.(*Id))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _Follower_FindUserFollowings_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Id)
 	if err := dec(in); err != nil {
@@ -207,14 +174,10 @@ var Follower_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Follower_GetUserRecommendations_Handler,
 		},
 		{
-			MethodName: "GetFollowingsWithBlogs",
-			Handler:    _Follower_GetFollowingsWithBlogs_Handler,
-		},
-		{
 			MethodName: "FindUserFollowings",
 			Handler:    _Follower_FindUserFollowings_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "follower/follower.proto",
+	Metadata: "proto/follower/follower.proto",
 }
