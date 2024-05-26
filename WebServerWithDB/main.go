@@ -108,6 +108,7 @@ type Server struct {
 }
 
 func (s *Server) CreateNewFollowing(ctx context.Context, request *follower.UserFollowingDto) (*follower.NeoFollowerDto, error) {
+	println("USAO JE NA FOLLOWERS")
 	userID := request.UserId
 	followerID := request.FollowerId
 	userIDInt := int(userID)
@@ -159,6 +160,13 @@ func (s *Server) GetUserRecommendations(ctx context.Context, request *follower.I
 	}, nil
 }
 
+func (s *Server) GetFollowingsWithBlogs(ctx context.Context, request *follower.Id) (*follower.ListBlogPostDto, error) {
+	// Vraćamo praznu listu BlogPostDto
+	return &follower.ListBlogPostDto{
+		ResponseList: []*follower.BlogPostDto{},
+	}, nil
+}
+
 func (s *Server) FindUserFollowings(ctx context.Context, request *follower.Id) (*follower.ListNeoUserDto, error) {
 	println("Usao je ovde FOLLOWERSSS")
 	userID := strconv.Itoa(int(request.Id))
@@ -179,12 +187,5 @@ func (s *Server) FindUserFollowings(ctx context.Context, request *follower.Id) (
 
 	return &follower.ListNeoUserDto{
 		ResponseList: responseList,
-	}, nil
-}
-
-func (s *Server) GetFollowingsWithBlogs(ctx context.Context, request *follower.Id) (*follower.ListBlogPostDto, error) {
-	// Vraćamo praznu listu BlogPostDto
-	return &follower.ListBlogPostDto{
-		ResponseList: []*follower.BlogPostDto{},
 	}, nil
 }
