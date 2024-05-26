@@ -15,10 +15,10 @@ import (
 )
 
 func main() {
-	/*port := os.Getenv("PORT")
+	port := os.Getenv("PORT")
 	if len(port) == 0 {
 		port = "8090"
-	}*/
+	}
 
 	timeoutContext, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -75,16 +75,29 @@ func main() {
 	}
 	logger.Println("Server stopped")*/
 
-	lis, err := net.Listen("tcp", "localhost:8090")
+	// lis, err := net.Listen("tcp", "localhost:8090")
+	// if err != nil {
+	// 	log.Fatalf("failed to listen: %v", err)
+	// }
+
+	// var opts []grpc.ServerOption
+	// grpcServer := grpc.NewServer(opts...)
+
+	// follower.RegisterFollowerServer(grpcServer, Server{FollowerRepo: store}) //da li store?
+	// reflection.Register(grpcServer)
+	// grpcServer.Serve(lis)
+
+	lis, err := net.Listen("tcp", "followers:8090")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
-	var opts []grpc.ServerOption
-	grpcServer := grpc.NewServer(opts...)
+	grpcServer := grpc.NewServer()
 
-	follower.RegisterFollowerServer(grpcServer, Server{FollowerRepo: store}) //da li store?
+	follower.RegisterFollowerServer(grpcServer, &Server{FollowerRepo: store})
+
 	reflection.Register(grpcServer)
+	log.Println("gRPC server starting on port 8090")
 	grpcServer.Serve(lis)
 
 }
@@ -94,7 +107,7 @@ type Server struct {
 	FollowerRepo *repo.FollowerRepository
 }
 
-func (s Server) CreateNewFollowing(ctx context.Context, request *follower.UserFollowingDto) (*follower.NeoFollowerDto, error) {
+func (s *Server) CreateNewFollowing(ctx context.Context, request *follower.UserFollowingDto) (*follower.NeoFollowerDto, error) {
 	userID := request.UserId
 	followerID := request.FollowerId
 	userIDInt := int(userID)
@@ -125,7 +138,7 @@ func (s Server) CreateNewFollowing(ctx context.Context, request *follower.UserFo
 	}, nil
 }
 
-func (s Server) GetUserRecommendations(ctx context.Context, request *follower.Id) (*follower.ListNeoUserDto, error) {
+func (s *Server) GetUserRecommendations(ctx context.Context, request *follower.Id) (*follower.ListNeoUserDto, error) {
 	userId := strconv.Itoa(int(request.Id))
 	recommendations, err := s.FollowerRepo.GetRecommendations(userId)
 	if err != nil {
@@ -146,7 +159,8 @@ func (s Server) GetUserRecommendations(ctx context.Context, request *follower.Id
 	}, nil
 }
 
-func (s Server) FindUserFollowings(ctx context.Context, request *follower.Id) (*follower.ListNeoUserDto, error) {
+func (s *Server) FindUserFollowings(ctx context.Context, request *follower.Id) (*follower.ListNeoUserDto, error) {
+	println("Usao je ovde FOLLOWERSSS")
 	userID := strconv.Itoa(int(request.Id))
 
 	followings, err := s.FollowerRepo.GetFollowings(userID)
@@ -165,5 +179,12 @@ func (s Server) FindUserFollowings(ctx context.Context, request *follower.Id) (*
 
 	return &follower.ListNeoUserDto{
 		ResponseList: responseList,
+	}, nil
+}
+
+func (s *Server) GetFollowingsWithBlogs(ctx context.Context, request *follower.Id) (*follower.ListBlogPostDto, error) {
+	// Vraćamo praznu listu BlogPostDto
+	return &follower.ListBlogPostDto{
+		ResponseList: []*follower.BlogPostDto{},
 	}, nil
 }
