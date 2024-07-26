@@ -73,8 +73,7 @@ Check the port mappings in docker-compose.yml to ensure that services are proper
 
 You can download the files from [this link](https://ufile.io/f/ud3nw). If you are unable to do so, please contact me via email.
 
-## Authors
-Contributors to this project:
+## Contributors
 - Ana Radovanović
 - Kristina Zelić
 - Milica Petrović
