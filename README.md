@@ -10,9 +10,12 @@ We ran them together using Docker.
 
 # Followers
 
-OSNOVNO O OVOM MODULU
+The Followers microservice handles the mutual following of users. It enables users to follow each other and provides various features, including:
+- User Following: Allows users to follow one another.
+- Follow Recommendations: Displays recommendations for users to follow based on the users they are already following.
+- Content Filtering: Shows blog posts only from the users they follow.
 
-The Followers microservice was added to our application at a later stage (it was not part of the initial monolithic application).
+This microservice was added to our application at a later stage (it was not part of the initial monolithic application).
 
 It is also written in Go, and the back-end controllers invoke its methods from the Go file using gRPC.
 
